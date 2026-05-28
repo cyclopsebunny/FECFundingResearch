@@ -30,6 +30,15 @@ displayed separately.
    FEC_API_KEY=your_key_here
    ```
 
+   For a hosted deployment, also set an app password:
+
+   ```dotenv
+   APP_USERNAME=researcher
+   APP_PASSWORD=a_long_private_password
+   ```
+
+   If `APP_PASSWORD` is omitted, the app runs without the password prompt.
+
 3. Run the development server:
 
    ```bash
@@ -51,6 +60,9 @@ npm run build
 The app retrieves OpenFEC candidate, committee, financial summary, and
 Schedule E aggregate data server-side. The API credential is sent as an
 `X-Api-Key` header and is not placed in browser-visible request URLs.
+
+When `APP_PASSWORD` is set, the app uses HTTP Basic Authentication to block
+access before any candidate lookup pages or report pages are served.
 
 FEC contributor information is provided for research and analysis and must not
 be used to solicit contributions or for commercial purposes.
