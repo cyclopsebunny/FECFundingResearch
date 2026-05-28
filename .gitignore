@@ -1,0 +1,19 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+*.tsbuildinfo
+
+# environment credentials
+.env*
+!.env.example
+
+# reports and local runtime data
+/reports/
+/data/
+
+# operating system
+.DS_Store
+
