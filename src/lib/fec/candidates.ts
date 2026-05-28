@@ -22,13 +22,43 @@ export type CandidateScope = {
 export async function searchCandidates(
   query: string,
   cycle: number,
+  filters: {
+    office?: string;
+    state?: string;
+    district?: string;
+  } = {},
 ): Promise<Candidate[]> {
   const response = await fecGet(
     "/candidates/search/",
     {
-      q: query,
+      q: query || undefined,
       cycle,
+      office: filters.office,
+      state: filters.state,
+      district: filters.district,
       per_page: 20,
+      sort: "name",
+    },
+    fecEnvelopeSchema(candidateSchema),
+  );
+
+  return response.results;
+}
+
+export async function listCandidates(filters: {
+  cycle: number;
+  office?: string;
+  state?: string;
+  district?: string;
+}): Promise<Candidate[]> {
+  const response = await fecGet(
+    "/candidates/",
+    {
+      cycle: filters.cycle,
+      office: filters.office,
+      state: filters.state,
+      district: filters.district,
+      per_page: 100,
       sort: "name",
     },
     fecEnvelopeSchema(candidateSchema),
@@ -79,4 +109,3 @@ export async function getCandidateScope(
     retrievedAt: new Date().toISOString(),
   };
 }
-

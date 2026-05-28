@@ -19,11 +19,14 @@ export default function RootLayout({
           <Link href="/" className="brand">
             FEC Funding Research
           </Link>
-          <p className="privacy-label">Private research tool</p>
+          <nav className="site-nav" aria-label="Primary navigation">
+            <Link href="/">Candidates</Link>
+            <Link href="/races">Races</Link>
+            <Link href="/committees">PACs/orgs</Link>
+          </nav>
         </header>
         <main>{children}</main>
       </body>
     </html>
   );
 }
-

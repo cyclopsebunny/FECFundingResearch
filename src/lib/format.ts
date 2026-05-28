@@ -28,7 +28,16 @@ export function formatDateTime(value: string): string {
   }).format(new Date(value));
 }
 
+export function formatNumber(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "Not available";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function candidateLabel(name: string | null | undefined): string {
   return name ?? "Unnamed candidate";
 }
-

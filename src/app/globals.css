@@ -65,6 +65,22 @@ p {
   text-transform: uppercase;
 }
 
+.site-nav {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.site-nav a {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.site-nav a:hover {
+  color: var(--primary);
+}
+
 .page-shell {
   margin: 0 auto;
   max-width: 1120px;
@@ -119,11 +135,34 @@ h2 {
   margin-bottom: 2rem;
 }
 
+.lookup-grid {
+  display: grid;
+  gap: 1.4rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  margin-bottom: 1.4rem;
+}
+
 .search-form {
   align-items: end;
   display: grid;
   gap: 1rem;
   grid-template-columns: 1fr 180px auto;
+}
+
+.race-form {
+  grid-template-columns: 1.2fr 170px 120px 120px 170px auto;
+}
+
+.stacked-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 label {
@@ -223,7 +262,8 @@ button:hover,
 }
 
 .action-link,
-.text-link {
+.text-link,
+.tag-link {
   color: var(--primary);
   font-weight: 700;
 }
@@ -235,8 +275,16 @@ button:hover,
 }
 
 .action-link:hover,
-.text-link:hover {
+.text-link:hover,
+.tag-link:hover {
   text-decoration: underline;
+}
+
+.tag-link {
+  display: inline-block;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.86rem;
+  margin: 0 0.45rem 0.25rem 0;
 }
 
 .disclaimer {
@@ -420,6 +468,9 @@ tbody tr:last-child td {
 
 @media (max-width: 760px) {
   .search-form,
+  .race-form,
+  .lookup-grid,
+  .form-grid,
   .metrics,
   .report-metrics {
     grid-template-columns: 1fr;

@@ -67,6 +67,71 @@ export default async function Home({ searchParams }: HomeProps) {
         </form>
       </section>
 
+      <section className="lookup-grid">
+        <form className="panel stacked-form" action="/races" method="get">
+          <div className="section-title">
+            <h2>Race or ZIP lookup</h2>
+            <p>Find federal candidates by office, state, district, or ZIP.</p>
+          </div>
+          <div className="form-grid">
+            <label>
+              ZIP code
+              <input name="zip" inputMode="numeric" placeholder="e.g. 30303" />
+            </label>
+            <label>
+              Office
+              <select name="office" defaultValue="">
+                <option value="">Any office</option>
+                <option value="P">President</option>
+                <option value="S">Senate</option>
+                <option value="H">House</option>
+              </select>
+            </label>
+            <label>
+              State
+              <input name="state" maxLength={2} placeholder="e.g. GA" />
+            </label>
+            <label>
+              District
+              <input name="district" placeholder="e.g. 05" />
+            </label>
+            <label>
+              Election cycle
+              <select defaultValue={cycle} name="cycle">
+                {selectableCycles().map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <button type="submit">Find races</button>
+        </form>
+
+        <form className="panel stacked-form" action="/committees" method="get">
+          <div className="section-title">
+            <h2>PAC or organization lookup</h2>
+            <p>Search committees and view recipients and outside spending.</p>
+          </div>
+          <label>
+            Committee or organization name
+            <input name="q" placeholder="e.g. Raytheon PAC" required />
+          </label>
+          <label>
+            Election cycle
+            <select defaultValue={cycle} name="cycle">
+              {selectableCycles().map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit">Search committees</button>
+        </form>
+      </section>
+
       {error && <p className="alert">{error}</p>}
 
       {results && (
@@ -115,4 +180,3 @@ export default async function Home({ searchParams }: HomeProps) {
     </div>
   );
 }
-

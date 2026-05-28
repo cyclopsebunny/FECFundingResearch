@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { parseCycle } from "@/lib/cycles";
 import { getCandidateScope } from "@/lib/fec/candidates";
 import { getOutsideSpendingSummary } from "@/lib/fec/outside-spending";
+import { getCandidateReceiptAnalysis } from "@/lib/fec/receipts";
 import {
   candidateLabel,
   formatCurrency,
   formatDate,
   formatDateTime,
+  formatNumber,
 } from "@/lib/format";
 import { PrintButton } from "./print-button";
 
@@ -25,11 +27,13 @@ export default async function ReportPage({
   const cycle = parseCycle(query.cycle);
   let scope;
   let outsideSpending;
+  let receiptAnalysis;
 
   try {
-    [scope, outsideSpending] = await Promise.all([
-      getCandidateScope(candidateId, cycle),
+    scope = await getCandidateScope(candidateId, cycle);
+    [outsideSpending, receiptAnalysis] = await Promise.all([
       getOutsideSpendingSummary(candidateId, cycle),
+      getCandidateReceiptAnalysis(scope.committees, cycle),
     ]);
   } catch {
     notFound();
@@ -150,6 +154,81 @@ export default async function ReportPage({
             Individual unitemized contributions:{" "}
             {formatCurrency(total?.individual_unitemized_contributions)}.
           </p>
+          <h3>Top itemized committee and organization receipts</h3>
+          {receiptAnalysis.committeeReceipts.length === 0 ? (
+            <p className="caption">
+              No itemized non-individual receipt rows were returned for the
+              authorized committees.
+            </p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Contributor</th>
+                  <th>Type</th>
+                  <th>Transactions</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {receiptAnalysis.committeeReceipts.map((receipt) => (
+                  <tr
+                    key={`${receipt.contributorId}:${receipt.contributorName}`}
+                  >
+                    <td>
+                      {receipt.contributorName}
+                      {receipt.contributorId && (
+                        <span className="table-detail">
+                          {receipt.contributorId}
+                        </span>
+                      )}
+                    </td>
+                    <td>{receipt.entityType}</td>
+                    <td>{formatNumber(receipt.count)}</td>
+                    <td>{formatCurrency(receipt.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+
+        <section>
+          <h2>Itemized Individual Contribution Patterns</h2>
+          <p>
+            These are aggregate views of itemized Schedule A receipts for the
+            authorized campaign committees. They do not include unitemized
+            contributions.
+          </p>
+          <AggregateTable
+            title="Top states"
+            rows={receiptAnalysis.byState}
+            labelFor={(row) => row.state_full ?? row.state ?? "Unknown state"}
+          />
+          <AggregateTable
+            title="Top ZIP codes"
+            rows={receiptAnalysis.byZip}
+            labelFor={(row) => row.zip ?? "Unknown ZIP"}
+          />
+          <AggregateTable
+            title="Top employers"
+            rows={receiptAnalysis.byEmployer}
+            labelFor={(row) => row.employer ?? "Unknown employer"}
+          />
+          <AggregateTable
+            title="Top occupations"
+            rows={receiptAnalysis.byOccupation}
+            labelFor={(row) => row.occupation ?? "Unknown occupation"}
+          />
+          <AggregateTable
+            title="Contribution amount bands"
+            rows={receiptAnalysis.bySize}
+            labelFor={(row) =>
+              row.size === null || row.size === undefined
+                ? "Unknown band"
+                : String(row.size)
+            }
+          />
         </section>
 
         <section>
@@ -203,10 +282,10 @@ export default async function ReportPage({
           <h2>Methodology And Usage Notice</h2>
           <p>
             This report uses OpenFEC candidate, candidate committee, candidate
-            totals, and Schedule E by-candidate aggregate resources for the
-            selected election cycle. FEC records may change as amended reports
-            are processed. Schedule E totals are calculated independently from
-            campaign receipt totals.
+            totals, Schedule A receipt aggregates, and Schedule E by-candidate
+            aggregate resources for the selected election cycle. FEC records
+            may change as amended reports are processed. Schedule E totals are
+            calculated independently from campaign receipt totals.
           </p>
           <p>
             FEC contributor information is provided for research and analysis
@@ -226,5 +305,59 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p>{label}</p>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function AggregateTable({
+  title,
+  rows,
+  labelFor,
+}: {
+  title: string;
+  rows: Array<{
+    total?: number | null;
+    count?: number | null;
+    state?: string | null;
+    state_full?: string | null;
+    zip?: string | null;
+    employer?: string | null;
+    occupation?: string | null;
+    size?: string | number | null;
+  }>;
+  labelFor: (row: {
+    state?: string | null;
+    state_full?: string | null;
+    zip?: string | null;
+    employer?: string | null;
+    occupation?: string | null;
+    size?: string | number | null;
+  }) => string;
+}) {
+  return (
+    <>
+      <h3>{title}</h3>
+      {rows.length === 0 ? (
+        <p className="caption">No aggregate rows were returned.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Transactions</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${title}:${labelFor(row)}:${index}`}>
+                <td>{labelFor(row)}</td>
+                <td>{formatNumber(row.count)}</td>
+                <td>{formatCurrency(row.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
   );
 }

@@ -36,13 +36,22 @@ function getApiKey(): string {
 
 export async function fecGet<T>(
   path: string,
-  params: Record<string, string | number | undefined>,
+  params: Record<
+    string,
+    string | number | boolean | readonly string[] | readonly number[] | undefined
+  >,
   schema: z.ZodType<T>,
 ): Promise<T> {
   const publicParams = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item !== "") {
+          publicParams.append(key, String(item));
+        }
+      }
+    } else if (value !== undefined && value !== "") {
       publicParams.set(key, String(value));
     }
   }

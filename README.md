@@ -6,9 +6,14 @@ sourced funding report from official OpenFEC data.
 ## Current Capabilities
 
 - Search federal candidate records by name and election cycle.
+- Find races by office, state, district, or ZIP code.
+- Search PACs and other political committees, then inspect recipient committees
+  and independent expenditure targets.
 - Display headline receipts, disbursements, cash, debt, and authorized campaign
   committee scope.
-- Generate a report with direct receipt summary categories.
+- Generate a report with direct receipt summary categories, top itemized
+  non-individual receipts, and itemized contribution aggregates by state, ZIP,
+  employer, occupation, and amount band.
 - Aggregate Schedule E independent expenditures into supporting, opposing, and
   top outside spending group sections.
 - Export the report to PDF through the report page's print control.
