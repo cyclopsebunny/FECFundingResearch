@@ -7,11 +7,15 @@ import {
   committeeTotalSchema,
   fecEnvelopeSchema,
   outsideSpendingAggregateSchema,
+  scheduleAReceiptSchema,
+  scheduleBDisbursementSchema,
   scheduleBRecipientSchema,
   type Committee,
   type CommitteeNameSearch,
   type CommitteeTotal,
   type OutsideSpendingAggregate,
+  type ScheduleAReceipt,
+  type ScheduleBDisbursement,
   type ScheduleBRecipient,
 } from "@/lib/fec/schemas";
 import { type OutsideSpender } from "@/lib/fec/outside-spending";
@@ -19,6 +23,8 @@ import { type OutsideSpender } from "@/lib/fec/outside-spending";
 export type CommitteeProfile = {
   committee: Committee;
   total: CommitteeTotal | null;
+  topReceipts: CommitteeTransaction[];
+  topDisbursements: CommitteeTransaction[];
   directRecipients: CommitteeRecipient[];
   outsideTargets: OutsideSpender[];
   cycle: number;
@@ -32,6 +38,15 @@ export type CommitteeRecipient = {
   committeeType: string | null | undefined;
   amount: number;
   count: number;
+};
+
+export type CommitteeTransaction = {
+  linkedCommitteeId: string | null | undefined;
+  name: string;
+  type: string;
+  description: string;
+  date: string | null | undefined;
+  amount: number;
 };
 
 export async function searchCommittees(
@@ -55,7 +70,14 @@ export async function getCommitteeProfile(
   committeeId: string,
   cycle: number,
 ): Promise<CommitteeProfile> {
-  const [committeeResponse, totalResponse, directRecipients, outsideTargets] =
+  const [
+    committeeResponse,
+    totalResponse,
+    topReceipts,
+    topDisbursements,
+    directRecipients,
+    outsideTargets,
+  ] =
     await Promise.all([
       fecGet(
         `/committee/${encodeURIComponent(committeeId)}/`,
@@ -63,6 +85,8 @@ export async function getCommitteeProfile(
         fecEnvelopeSchema(committeeSchema),
       ),
       getCommitteeTotal(committeeId, cycle),
+      getTopReceipts(committeeId, cycle),
+      getTopDisbursements(committeeId, cycle),
       getDirectRecipients(committeeId, cycle),
       getOutsideTargets(committeeId, cycle),
     ]);
@@ -76,11 +100,58 @@ export async function getCommitteeProfile(
   return {
     committee,
     total: totalResponse,
+    topReceipts,
+    topDisbursements,
     directRecipients,
     outsideTargets,
     cycle,
     retrievedAt: new Date().toISOString(),
   };
+}
+
+async function getTopReceipts(
+  committeeId: string,
+  cycle: number,
+): Promise<CommitteeTransaction[]> {
+  try {
+    const response = await fecGet(
+      "/schedules/schedule_a/",
+      {
+        committee_id: committeeId,
+        cycle,
+        is_individual: false,
+        per_page: 25,
+        sort: "-contribution_receipt_amount",
+      },
+      fecEnvelopeSchema(scheduleAReceiptSchema),
+    );
+
+    return response.results.map(receiptFromRow);
+  } catch {
+    return [];
+  }
+}
+
+async function getTopDisbursements(
+  committeeId: string,
+  cycle: number,
+): Promise<CommitteeTransaction[]> {
+  try {
+    const response = await fecGet(
+      "/schedules/schedule_b/",
+      {
+        committee_id: committeeId,
+        cycle,
+        per_page: 25,
+        sort: "-disbursement_amount",
+      },
+      fecEnvelopeSchema(scheduleBDisbursementSchema),
+    );
+
+    return response.results.map(disbursementFromRow);
+  } catch {
+    return [];
+  }
 }
 
 async function getCommitteeTotal(
@@ -155,6 +226,47 @@ function recipientFromRow(row: ScheduleBRecipient): CommitteeRecipient {
     committeeType: row.recipient_committee?.committee_type_full,
     amount: row.total ?? 0,
     count: row.count ?? 0,
+  };
+}
+
+function receiptFromRow(row: ScheduleAReceipt): CommitteeTransaction {
+  return {
+    linkedCommitteeId: row.contributor_id ?? row.contributor?.committee_id,
+    name:
+      row.contributor_name ??
+      row.contributor?.name ??
+      row.committee_name ??
+      "Unnamed contributor",
+    type:
+      row.contributor_type_full ??
+      row.contributor?.committee_type_full ??
+      row.entity_type_desc ??
+      "Receipt",
+    description: "Itemized receipt",
+    date: row.contribution_receipt_date,
+    amount: row.contribution_receipt_amount ?? 0,
+  };
+}
+
+function disbursementFromRow(row: ScheduleBDisbursement): CommitteeTransaction {
+  return {
+    linkedCommitteeId: row.recipient_id ?? row.recipient_committee?.committee_id,
+    name:
+      row.recipient_name ??
+      row.recipient_committee?.name ??
+      "Unnamed payee",
+    type:
+      row.entity_type_desc ??
+      row.recipient_committee?.committee_type_full ??
+      "Disbursement",
+    description:
+      row.disbursement_description ??
+      row.line_number_label ??
+      row.disbursement_type_description ??
+      row.disbursement_purpose_category ??
+      "Itemized disbursement",
+    date: row.disbursement_date,
+    amount: row.disbursement_amount ?? 0,
   };
 }
 

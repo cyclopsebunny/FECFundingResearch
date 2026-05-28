@@ -112,7 +112,13 @@ export default async function ReportPage({
             <tbody>
               {committees.map((committee) => (
                 <tr key={committee.committee_id}>
-                  <td>{committee.name ?? "Unnamed committee"}</td>
+                  <td>
+                    <CommitteeNameLink
+                      committeeId={committee.committee_id}
+                      cycle={cycle}
+                      name={committee.name ?? "Unnamed committee"}
+                    />
+                  </td>
                   <td className="id">{committee.committee_id}</td>
                   <td>
                     {committee.designation_full ??
@@ -176,7 +182,11 @@ export default async function ReportPage({
                     key={`${receipt.contributorId}:${receipt.contributorName}`}
                   >
                     <td>
-                      {receipt.contributorName}
+                      <CommitteeNameLink
+                        committeeId={receipt.contributorId}
+                        cycle={cycle}
+                        name={receipt.contributorName}
+                      />
                       {receipt.contributorId && (
                         <span className="table-detail">
                           {receipt.contributorId}
@@ -264,7 +274,11 @@ export default async function ReportPage({
                 {outsideSpending.topSpenders.map((spender) => (
                   <tr key={`${spender.committeeId}:${spender.position}`}>
                     <td>
-                      {spender.committeeName}
+                      <CommitteeNameLink
+                        committeeId={spender.committeeId}
+                        cycle={cycle}
+                        name={spender.committeeName}
+                      />
                       {spender.committeeId && (
                         <span className="table-detail">{spender.committeeId}</span>
                       )}
@@ -306,6 +320,30 @@ function Metric({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function CommitteeNameLink({
+  committeeId,
+  cycle,
+  name,
+}: {
+  committeeId: string | null | undefined;
+  cycle: number;
+  name: string;
+}) {
+  if (!isCommitteeId(committeeId)) {
+    return name;
+  }
+
+  return (
+    <Link className="text-link" href={`/committee/${committeeId}?cycle=${cycle}`}>
+      {name}
+    </Link>
+  );
+}
+
+function isCommitteeId(value: string | null | undefined): value is string {
+  return Boolean(value?.startsWith("C"));
 }
 
 function AggregateTable({

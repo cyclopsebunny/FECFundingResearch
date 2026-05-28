@@ -101,7 +101,14 @@ export default async function CandidatePage({
             <tbody>
               {committees.map((committee) => (
                 <tr key={committee.committee_id}>
-                  <td>{committee.name ?? "Unnamed committee"}</td>
+                  <td>
+                    <Link
+                      className="text-link"
+                      href={`/committee/${committee.committee_id}?cycle=${cycle}`}
+                    >
+                      {committee.name ?? "Unnamed committee"}
+                    </Link>
+                  </td>
                   <td className="id">{committee.committee_id}</td>
                   <td>
                     {committee.designation_full ??

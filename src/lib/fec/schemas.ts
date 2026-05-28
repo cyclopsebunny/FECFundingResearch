@@ -60,9 +60,27 @@ export const committeeTotalSchema = z
     coordinated_expenditures_by_party_committee: nullableNumber,
     contributions_to_candidates: nullableNumber,
     transfers_to_other_authorized_committee: nullableNumber,
+    transfers_to_affiliated_committee: nullableNumber,
+    transfers_from_affiliated_party: nullableNumber,
+    transfers_from_nonfed_account: nullableNumber,
+    total_transfers: nullableNumber,
     individual_contributions: nullableNumber,
+    individual_itemized_contributions: nullableNumber,
+    individual_unitemized_contributions: nullableNumber,
     political_party_committee_contributions: nullableNumber,
     other_political_committee_contributions: nullableNumber,
+    contributions: nullableNumber,
+    contribution_refunds: nullableNumber,
+    operating_expenditures: nullableNumber,
+    fed_operating_expenditures: nullableNumber,
+    shared_fed_operating_expenditures: nullableNumber,
+    shared_nonfed_operating_expenditures: nullableNumber,
+    other_disbursements: nullableNumber,
+    fed_disbursements: nullableNumber,
+    offsets_to_operating_expenditures: nullableNumber,
+    refunded_individual_contributions: nullableNumber,
+    refunded_other_political_committee_contributions: nullableNumber,
+    refunded_political_party_committee_contributions: nullableNumber,
     last_cash_on_hand_end_period: nullableNumber,
     coverage_start_date: nullableString,
     coverage_end_date: nullableString,
@@ -147,6 +165,44 @@ export const scheduleAReceiptSchema = z
     contribution_receipt_amount: nullableNumber,
     contribution_receipt_date: nullableString,
     cycle: z.number().optional(),
+    contributor: z
+      .object({
+        committee_id: nullableString,
+        name: nullableString,
+        committee_type: nullableString,
+        committee_type_full: nullableString,
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
+  })
+  .passthrough();
+
+export const scheduleBDisbursementSchema = z
+  .object({
+    recipient_id: nullableString,
+    recipient_name: nullableString,
+    committee_id: nullableString,
+    committee_name: nullableString,
+    disbursement_amount: nullableNumber,
+    disbursement_date: nullableString,
+    disbursement_description: nullableString,
+    disbursement_purpose_category: nullableString,
+    disbursement_type_description: nullableString,
+    entity_type: nullableString,
+    entity_type_desc: nullableString,
+    line_number_label: nullableString,
+    recipient_committee: z
+      .object({
+        committee_id: nullableString,
+        name: nullableString,
+        candidate_ids: nullableStringArray,
+        committee_type: nullableString,
+        committee_type_full: nullableString,
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
   })
   .passthrough();
 
@@ -199,3 +255,4 @@ export type Election = z.infer<typeof electionSchema>;
 export type ReceiptAggregate = z.infer<typeof receiptAggregateSchema>;
 export type ScheduleAReceipt = z.infer<typeof scheduleAReceiptSchema>;
 export type ScheduleBRecipient = z.infer<typeof scheduleBRecipientSchema>;
+export type ScheduleBDisbursement = z.infer<typeof scheduleBDisbursementSchema>;

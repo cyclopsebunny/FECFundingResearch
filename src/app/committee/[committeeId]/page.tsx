@@ -10,6 +10,9 @@ import {
   formatNumber,
 } from "@/lib/format";
 
+type BreakdownRow = [string, number | null | undefined];
+type DisplayBreakdownRow = [string, number];
+
 type CommitteePageProps = {
   params: Promise<{ committeeId: string }>;
   searchParams: Promise<{ cycle?: string }>;
@@ -41,7 +44,31 @@ export default async function CommitteePage({
     );
   }
 
-  const { committee, total, directRecipients, outsideTargets } = profile;
+  const {
+    committee,
+    total,
+    topReceipts,
+    topDisbursements,
+    directRecipients,
+    outsideTargets,
+  } = profile;
+  const receiptBreakdown = filterBreakdownRows([
+    ["Transfers from affiliated party committees", total?.transfers_from_affiliated_party],
+    ["Individual contributions", total?.individual_contributions],
+    ["Transfers from nonfederal account", total?.transfers_from_nonfed_account],
+    ["Other political committee contributions", total?.other_political_committee_contributions],
+    ["Political party committee contributions", total?.political_party_committee_contributions],
+    ["Offsets to operating expenditures", total?.offsets_to_operating_expenditures],
+  ]);
+  const disbursementBreakdown = filterBreakdownRows([
+    ["Operating expenditures", total?.operating_expenditures],
+    ["Transfers to affiliated committees", total?.transfers_to_affiliated_committee],
+    ["Contribution refunds", total?.contribution_refunds],
+    ["Independent expenditures", total?.independent_expenditures],
+    ["Coordinated party expenditures", total?.coordinated_expenditures_by_party_committee],
+    ["Candidate contributions", total?.contributions_to_candidates],
+    ["Other disbursements", total?.other_disbursements],
+  ]);
 
   return (
     <div className="page-shell">
@@ -84,10 +111,54 @@ export default async function CommitteePage({
 
       <section className="panel">
         <div className="section-title">
+          <h2>Where the money came from</h2>
+          <p>
+            FEC summary categories explain the full receipt total. The itemized
+            table below lists non-individual committee and organization receipts.
+          </p>
+        </div>
+        <BreakdownTable rows={receiptBreakdown} />
+        <h3>Top itemized non-individual receipts</h3>
+        {topReceipts.length === 0 ? (
+          <p>No itemized non-individual receipts were returned for this cycle.</p>
+        ) : (
+          <TransactionTable
+            cycle={cycle}
+            entityLabel="Contributor"
+            transactions={topReceipts}
+          />
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="section-title">
+          <h2>Where the money went</h2>
+          <p>
+            These FEC categories include operating expenses, transfers, refunds,
+            and political spending. They are broader than recipient-committee
+            transfers.
+          </p>
+        </div>
+        <BreakdownTable rows={disbursementBreakdown} />
+        <h3>Top itemized disbursements</h3>
+        {topDisbursements.length === 0 ? (
+          <p>No itemized disbursements were returned for this cycle.</p>
+        ) : (
+          <TransactionTable
+            cycle={cycle}
+            entityLabel="Payee"
+            transactions={topDisbursements}
+          />
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="section-title">
           <h2>Direct recipient committees</h2>
           <p>
             Schedule B disbursements grouped by recipient. Candidate IDs are
             shown when the recipient committee is associated with a candidate.
+            This is a thread-following view, not the full disbursement total.
           </p>
         </div>
         {directRecipients.length === 0 ? (
@@ -106,7 +177,11 @@ export default async function CommitteePage({
               {directRecipients.map((recipient) => (
                 <tr key={`${recipient.recipientId}:${recipient.recipientName}`}>
                   <td>
-                    {recipient.recipientName}
+                    <CommitteeNameLink
+                      committeeId={recipient.recipientId}
+                      cycle={cycle}
+                      name={recipient.recipientName}
+                    />
                     {recipient.recipientId && (
                       <span className="table-detail">{recipient.recipientId}</span>
                     )}
@@ -201,4 +276,117 @@ function Metric({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </article>
   );
+}
+
+function BreakdownTable({ rows }: { rows: DisplayBreakdownRow[] }) {
+  if (rows.length === 0) {
+    return <p>No summary category amounts were returned.</p>;
+  }
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(([label, value]) => (
+          <tr key={label}>
+            <td>{label}</td>
+            <td>{formatCurrency(value)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TransactionTable({
+  cycle,
+  entityLabel,
+  transactions,
+}: {
+  cycle: number;
+  entityLabel: string;
+  transactions: Array<{
+    linkedCommitteeId: string | null | undefined;
+    name: string;
+    type: string;
+    description: string;
+    date: string | null | undefined;
+    amount: number;
+  }>;
+}) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>{entityLabel}</th>
+          <th>Type / purpose</th>
+          <th>Date</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {transactions.map((transaction, index) => (
+          <tr key={`${transaction.linkedCommitteeId}:${transaction.name}:${index}`}>
+            <td>
+              <CommitteeNameLink
+                committeeId={transaction.linkedCommitteeId}
+                cycle={cycle}
+                name={transaction.name}
+              />
+              {transaction.linkedCommitteeId && (
+                <span className="table-detail">
+                  {transaction.linkedCommitteeId}
+                </span>
+              )}
+            </td>
+            <td>
+              {transaction.description}
+              <span className="table-detail">{transaction.type}</span>
+            </td>
+            <td>{formatDate(transaction.date)}</td>
+            <td>{formatCurrency(transaction.amount)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function isMeaningfulAmount(
+  entry: BreakdownRow,
+): entry is DisplayBreakdownRow {
+  return entry[1] !== null && entry[1] !== undefined && entry[1] !== 0;
+}
+
+function filterBreakdownRows(rows: BreakdownRow[]): DisplayBreakdownRow[] {
+  return rows.filter(isMeaningfulAmount);
+}
+
+function CommitteeNameLink({
+  committeeId,
+  cycle,
+  name,
+}: {
+  committeeId: string | null | undefined;
+  cycle: number;
+  name: string;
+}) {
+  if (!isCommitteeId(committeeId)) {
+    return name;
+  }
+
+  return (
+    <Link className="text-link" href={`/committee/${committeeId}?cycle=${cycle}`}>
+      {name}
+    </Link>
+  );
+}
+
+function isCommitteeId(value: string | null | undefined): value is string {
+  return Boolean(value?.startsWith("C"));
 }
